@@ -41,6 +41,21 @@ module ActionController
       @permitted = false
     end
 
+    def self.new_from_hash_copying_default(hash)
+      new(hash).tap do |new_hash|
+        new_hash.default = hash.default
+      end
+    end
+
+    def update(other_hash)
+      if other_hash.is_a? Parameters
+        super(other_hash)
+      else
+        other_hash.each_pair { |key, value| regular_writer(convert_key(key), convert_value(value)) }
+        self
+      end
+    end
+
     def permit!
       each_pair do |key, value|
         convert_hashes_to_parameters(key, value)
@@ -99,7 +114,7 @@ module ActionController
 
     protected
       def convert_value(value)
-        if value.class == Hash
+        if value.is_a?(Hash)
           self.class.new_from_hash_copying_default(value)
         elsif value.is_a?(Array)
           value.dup.replace(value.map { |e| convert_value(e) })
